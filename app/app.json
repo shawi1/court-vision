@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Court Vision",
+    "slug": "court-vision",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a1f2b"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.courtvision.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Court Vision uses your microphone to capture spoken play descriptions and turn them into animated diagrams."
+      }
+    },
+    "android": {
+      "package": "com.courtvision.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a1f2b"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["RECORD_AUDIO"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiBaseUrl": "http://127.0.0.1:8765"
+    }
+  }
+}
