@@ -23,7 +23,7 @@ finally {
 }
 
 Write-Host "Copying canvaskit.wasm into dist/..." -ForegroundColor Cyan
-$wasmSrc = Join-Path $app "node_modules\canvaskit-wasm\bin\canvaskit.wasm"
+$wasmSrc = Join-Path $app "node_modules\canvaskit-wasm\bin\full\canvaskit.wasm"
 $wasmDst = Join-Path $app "dist\_expo\static\js\web"
 New-Item -ItemType Directory -Force -Path $wasmDst | Out-Null
 Copy-Item $wasmSrc $wasmDst -Force

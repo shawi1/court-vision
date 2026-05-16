@@ -116,7 +116,7 @@ python -m http.server 5173 --directory app\dist
 # Open http://127.0.0.1:5173/
 ```
 
-**Critical:** `build-web.ps1` must run instead of plain `expo export` because Expo doesn't bundle the CanvasKit WASM. The script does `expo export` then copies `node_modules\canvaskit-wasm\bin\canvaskit.wasm` into `dist\_expo\static\js\web\`. Without this, the browser 404s on the WASM and Skia content never renders.
+**Critical:** `build-web.ps1` must run instead of plain `expo export` because Expo doesn't bundle the CanvasKit WASM. The script does `expo export` then copies `node_modules\canvaskit-wasm\bin\full\canvaskit.wasm` into `dist\_expo\static\js\web\`. Without this, the browser 404s on the WASM and Skia content never renders. Must be the `bin\full\` variant — `@shopify/react-native-skia` 2.2.x imports `canvaskit-wasm/bin/full/canvaskit.js`, and the slim `bin\canvaskit.wasm` is binary-incompatible (LoadSkiaWeb rejects with `Infinity`, then downstream `Skia.PictureRecorder` / `CanvasKit is not defined` crashes follow).
 
 ### Backend (manual)
 
@@ -156,7 +156,7 @@ COURT_VISION_CORS=*
 
 ## Quirks / things that bite
 
-- **CanvasKit WASM not bundled by Expo** — must copy after every `expo export`. Use `scripts/build-web.ps1`.
+- **CanvasKit WASM not bundled by Expo** — must copy after every `expo export`. Use `scripts/build-web.ps1`. Copy from `bin\full\canvaskit.wasm`, NOT `bin\canvaskit.wasm` — Skia 2.2 imports the full variant and the slim one fails instantiation.
 - **`Skia.FontMgr.System()` is async-loaded on web** — never call it at module top-level. Always inside a hook or render call. (See `useSystemFont` in `PlayRenderer.tsx`.)
 - **`uvicorn --reload` + `nba_api` = crash** — the reloader can't handle long-running requests once the NBA client is imported. Run dev without `--reload`.
 - **`PlayerGameLog.TEAM_ID` is empty in current stats.nba.com responses** — use `CommonPlayerInfo` to resolve a player's current team (see `mcp_client._current_team`).
