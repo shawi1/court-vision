@@ -297,7 +297,10 @@ export function HomeScreen() {
                 onChange={setCurrentTime}
                 playing={playing}
                 onTogglePlay={() => {
-                  if (currentTime >= playMaxTick + 1) setCurrentTime(0);
+                  // Reset to the start if the user is at (or past) the last
+                  // action tick, so pressing play after stepping through to
+                  // the end replays from the top.
+                  if (currentTime >= playMaxTick) setCurrentTime(0);
                   setPlaying((p) => !p);
                 }}
               />
