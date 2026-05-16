@@ -2,6 +2,11 @@
  * Playback math: compute a player's position at any (possibly fractional) tick by
  * interpolating between the anchor positions implied by the play's actions.
  *
+ * Timing model: an action with `tick: N` BEGINS at t=N and the player reaches its
+ * destination at t=N+1. Between actions the player holds. This matches a coach's
+ * mental model: clicking tick 0 shows the starting formation; tick 1 shows the
+ * state after the first action completes; etc.
+ *
  * Actions that REPOSITION a player:
  *   - move, dribble: actor goes to `to`
  *   - cut: actor goes to `to`
@@ -30,15 +35,18 @@ function anchorsForPlayer(play: PlaySchema, pid: PlayerId): Anchor[] {
   if (hit) return hit;
 
   const player = play.players.find((p) => p.id === pid)!;
-  const anchors: Anchor[] = [
-    { tick: -1, pos: locationToNorm(player.startPosition) },
-  ];
-  for (const a of play.actions) {
+  let pos = locationToNorm(player.startPosition);
+  const anchors: Anchor[] = [{ tick: 0, pos }];
+  const sorted = [...play.actions].sort((a, b) => a.tick - b.tick);
+  for (const a of sorted) {
     const dest = positionChangeFor(a, pid);
-    if (dest) anchors.push({ tick: a.tick, pos: dest });
+    if (!dest) continue;
+    // Hold at current position until the action begins, then animate to dest
+    // over the interval [tick, tick+1].
+    anchors.push({ tick: a.tick, pos });
+    anchors.push({ tick: a.tick + 1, pos: dest });
+    pos = dest;
   }
-  // Sort defensively in case actions aren't already sorted.
-  anchors.sort((a, b) => a.tick - b.tick);
   cache.set(pid, anchors);
   return anchors;
 }

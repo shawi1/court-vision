@@ -130,16 +130,17 @@ export function HomeScreen() {
       .catch((e) => setHealthError(e?.message ?? "Backend unreachable"));
   }, []);
 
-  // Auto-advance playback
+  // Auto-advance playback. Actions animate over [tick, tick+1], so we run the
+  // clock to maxTick + 1 to let the last action finish.
   React.useEffect(() => {
     if (!playing || !play) return;
-    const maxT = maxTickOf(play);
+    const endT = maxTickOf(play) + 1;
     const id = setInterval(() => {
       setCurrentTime((t) => {
         const next = +(t + 0.25).toFixed(2);
-        if (next > maxT + 0.5) {
+        if (next > endT) {
           setPlaying(false);
-          return maxT;
+          return endT;
         }
         return next;
       });
@@ -296,7 +297,7 @@ export function HomeScreen() {
                 onChange={setCurrentTime}
                 playing={playing}
                 onTogglePlay={() => {
-                  if (currentTime >= playMaxTick) setCurrentTime(0);
+                  if (currentTime >= playMaxTick + 1) setCurrentTime(0);
                   setPlaying((p) => !p);
                 }}
               />
