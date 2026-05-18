@@ -24,7 +24,7 @@ import {
 } from "@/court/playback";
 import type { Action, PlaySchema, PlayerId } from "@/types/play";
 
-const PLAYER_RADIUS_FRAC = 0.024;
+const PLAYER_RADIUS_FRAC = 0.034;
 const PLAYER_COLOR = "#1f5d8c";
 const PLAYER_INBOUNDER_COLOR = "#e67e22";
 const SCREEN_COLOR = "#ff6f3c";
@@ -100,8 +100,8 @@ export function PlayRenderer({
       {play.players.map((p) => {
         const norm = playerPosAtTime(play, p.id, t);
         const { x, y } = normToCanvas(norm, width, height, padding);
-        const num = p.id.replace("P", "");
-        const label = font ? font.measureText(num) : { width: 8, height: 14 };
+        const text = p.role;
+        const label = font ? font.measureText(text) : { width: 18, height: 14 };
         return (
           <Group key={p.id}>
             <Circle cx={x} cy={y} r={radius} color={p.isInbounder ? PLAYER_INBOUNDER_COLOR : PLAYER_COLOR} />
@@ -110,7 +110,7 @@ export function PlayRenderer({
               <SkiaText
                 x={x - label.width / 2}
                 y={y + label.height / 3}
-                text={num}
+                text={text}
                 font={font}
                 color={"white"}
               />
