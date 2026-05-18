@@ -11,6 +11,7 @@
  *   └──────────────────┴───────────────────┴───────────────────┘
  */
 import React from "react";
+import { flushSync } from "react-dom";
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text,
   TextInput, View, useWindowDimensions,
@@ -70,7 +71,7 @@ const FALLBACK_LINEUP: ScoutPlayer[] = [
 
 const DEFAULT_TEAM = "GSW";
 
-const PLAYBACK_INTERVAL_MS = 700;
+const MS_PER_TICK = 700;
 
 export function HomeScreen() {
   const { width, height } = useWindowDimensions();
@@ -131,21 +132,43 @@ export function HomeScreen() {
   }, []);
 
   // Auto-advance playback. Actions animate over [tick, tick+1], so we run the
-  // clock to maxTick + 1 to let the last action finish.
+  // clock to maxTick + 1 to let the last action finish. Driven by RAF so each
+  // currentTime update lands on a paint frame — using setInterval here ends up
+  // with Skia's Canvas reconciler skipping frames when state changes between
+  // paints, so the tokens look frozen even though state is advancing.
   React.useEffect(() => {
     if (!playing || !play) return;
     const endT = maxTickOf(play) + 1;
-    const id = setInterval(() => {
-      setCurrentTime((t) => {
-        const next = +(t + 0.25).toFixed(2);
-        if (next > endT) {
-          setPlaying(false);
-          return endT;
-        }
-        return next;
+    let rafId = 0;
+    let lastFrameMs: number | null = null;
+    const tick = (nowMs: number) => {
+      if (lastFrameMs === null) lastFrameMs = nowMs;
+      const dt = nowMs - lastFrameMs;
+      lastFrameMs = nowMs;
+      let done = false;
+      // flushSync: force React to commit this state change before the next
+      // browser paint, so the Skia Canvas's useLayoutEffect fires and the
+      // canvas repaints in the same frame instead of one frame later. Without
+      // this, async setState + Skia's async reconciler can race so that the
+      // canvas keeps painting a stale picture even while the readout updates.
+      flushSync(() => {
+        setCurrentTime((t) => {
+          const next = t + dt / MS_PER_TICK;
+          if (next >= endT) {
+            done = true;
+            return endT;
+          }
+          return next;
+        });
       });
-    }, PLAYBACK_INTERVAL_MS / 4);
-    return () => clearInterval(id);
+      if (done) {
+        setPlaying(false);
+        return;
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [playing, play]);
 
   const runParse = React.useCallback(async () => {
