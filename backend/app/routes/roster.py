@@ -28,6 +28,11 @@ class RosterResponse(BaseModel):
     team_id: int | None = None
     full_name: str | None = None
     players: list[RosterPlayer]
+    # Starters from the team's most recent game (BoxScoreTraditionalV2 filtered
+    # by START_POSITION). Length 5 in the common case; empty if the team has
+    # no recent games or the boxscore lookup failed — the frontend should fall
+    # back to its own slice of `players` in that case.
+    starters: list[RosterPlayer] = []
     source: str  # "nba_stats_mcp" | "stub"
 
 
@@ -79,10 +84,30 @@ def roster_endpoint(team: str = Query(..., description="3-letter team abbreviati
     ]
     players.sort(key=lambda p: p.name)
 
+    # Cross-reference the season's top 5-man unit with roster rows so the UI
+    # gets the same name/position/jersey/height fields as `players`.
+    roster_by_pid: dict[int, dict[str, Any]] = {
+        int(r["PLAYER_ID"]): r for r in rows if r.get("PLAYER_ID") is not None
+    }
+    starter_ids = mcp_client.season_top_starting_lineup(team_id)
+    starters: list[RosterPlayer] = []
+    for pid in starter_ids:
+        roster_row = roster_by_pid.get(pid)
+        if roster_row is None:
+            # Could happen if a starter was traded mid-season — skip.
+            continue
+        starters.append(RosterPlayer(
+            name=str(roster_row.get("PLAYER", "")).strip(),
+            position=roster_row.get("POSITION") or None,
+            jersey=str(roster_row.get("NUM")) if roster_row.get("NUM") is not None else None,
+            height=roster_row.get("HEIGHT") or None,
+        ))
+
     return RosterResponse(
         team=team.upper(),
         team_id=team_id,
         full_name=full_name,
         players=players,
+        starters=starters,
         source="nba_stats_mcp",
     )

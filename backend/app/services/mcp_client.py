@@ -137,6 +137,50 @@ def _current_team(player_id: int) -> dict[str, Any] | None:
     return None
 
 
+def season_top_starting_lineup(team_id: int) -> list[int]:
+    """Return the player ids of the team's most-used 5-man unit this season.
+
+    Uses LeagueDashLineups with `per_mode_detailed="Totals"` so MIN is raw
+    total floor time and the starting 5 (which plays together every game)
+    floats to the top. Per100Possessions normalizes MIN out and the top row
+    becomes a small-sample bench unit — don't use that here.
+
+    `GROUP_ID` comes back like `"-204001-1630311-1630611-1641764-1642954-"`
+    (dash-delimited, leading and trailing dashes). Returns those parsed as
+    a list of player ids in their roster order, or [] on failure.
+    """
+    client = _ensure_client()
+    if not client:
+        return []
+    try:
+        from nba_api.stats.endpoints import leaguedashlineups  # type: ignore
+        from nba_stats_mcp.tools._helpers import (  # type: ignore
+            normalize_records, normalize_season, normalize_season_type,
+        )
+        season_n = normalize_season(None)
+        st = normalize_season_type("Regular Season")
+        ep = client.call(
+            leaguedashlineups.LeagueDashLineups,
+            cache_key=f"cv:topstart:{team_id}:{season_n}",
+            cache_ttl=3600,
+            season=season_n,
+            season_type_all_star=st,
+            group_quantity=5,
+            per_mode_detailed="Totals",
+            measure_type_detailed_defense="Base",
+            team_id_nullable=team_id,
+        )
+        rows = normalize_records(ep).get("Lineups", [])
+        if not rows:
+            return []
+        rows.sort(key=lambda r: r.get("MIN") or 0, reverse=True)
+        gid = str(rows[0].get("GROUP_ID") or "")
+        return [int(s) for s in gid.split("-") if s.strip().lstrip("-").isdigit()]
+    except Exception as e:
+        logger.warning("season_top_starting_lineup(%d) failed: %s", team_id, e)
+        return []
+
+
 def _team_lineups(team_id: int, top_n: int = 5) -> list[dict[str, Any]]:
     """Top-N most-used 5-man lineups for a team this season. [] on failure."""
     client = _ensure_client()

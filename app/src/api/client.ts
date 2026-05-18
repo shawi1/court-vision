@@ -101,6 +101,8 @@ export interface RosterResponse {
   team_id?: number | null;
   full_name?: string | null;
   players: RosterPlayer[];
+  /** Starters from the team's most recent game. Empty array if unavailable. */
+  starters: RosterPlayer[];
   source: "nba_stats_mcp" | "stub";
 }
 export async function fetchRoster(team: string): Promise<RosterResponse> {
