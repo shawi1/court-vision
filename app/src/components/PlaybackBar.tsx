@@ -36,7 +36,7 @@ export function PlaybackBar({ maxTick, currentTime, onChange, playing, onToggleP
           />
         ))}
       </View>
-      <Text style={styles.tick}>tick {Math.floor(currentTime)} / {maxTick}</Text>
+      <Text style={styles.tick}>tick {Math.min(maxTick, Math.floor(currentTime))} / {maxTick}</Text>
     </View>
   );
 }
